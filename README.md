@@ -4,7 +4,8 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 # What works as of now
 - Supports the filter expression in below format
-    `<Bracket> <Attribute> <Operator> <Value> <Bracket><AND/OR> <Bracket> <Attribute> <Operator> <Value>` for Example: `(AppProfile = Netflix or Facebook ) and (srcIP = 172.24.147.115 or dstIP = 172.24.147.115)`
+    - `<Bracket> <Attribute> <Operator> <Value> <Bracket><AND/OR> <Bracket> <Attribute> <Operator> <Value>` 
+    - For Example: `(AppProfile = Netflix or Facebook ) and (srcIP = 172.24.147.115 or dstIP = 172.24.147.115)`
 - On clicking inside the textfield a suggestion dropdow opens
     - User can type to filter the suggestions
     - User can user Up/Down arrow keys to navigate between the suggestions options
