@@ -24,6 +24,7 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
     - Example: `dstPort between 80 to 120` 
 - Handle when user copy pastes some text
 - OnFocus open the suggestion dropdown
+- Does not work as expected when user selects a value from dropdown and then clears it.
 
 ## Run it locally
 
