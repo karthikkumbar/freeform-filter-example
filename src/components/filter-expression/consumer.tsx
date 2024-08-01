@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback, useState } from 'react'
-import { Editor, Node, Transforms, Range, createEditor, Descendant } from 'slate'
+import { Element as SlateElement, Editor, Node, Transforms, Range, createEditor, Descendant, before } from 'slate'
 import { withHistory } from 'slate-history'
 import {
   withReact
@@ -11,13 +11,8 @@ import { COMBINATION_OPTIONS } from './utility/operators'
 import MentionExample from "."
 import { withFilterExpressions } from './utility/withFilterExpressions'
 import SuggestDropDown from './components/SuggestDropDown'
-import { suggestionsType, queryPropsType } from './types'
+import { suggestionsType, queryPropsType, queryNodeType } from './types'
 import { CustomElement } from './custom-types'
-
-const validateQuery = (value: Descendant[]) => {
-	// console.log(value[0].children.filter(data => !!data.type))
-	// console.log(value[0])
-}
 
 
 const queryProps: Array<queryPropsType> = [
@@ -48,7 +43,7 @@ const queryProps: Array<queryPropsType> = [
 
 const initialValue: Descendant[] = [
     {    
-      type: 'paragraph',
+      type: 'empty',
       children: [
         { text: '' },
       ],
@@ -68,48 +63,74 @@ function Consumer() {
 
     const suggestions = useMemo<Array<suggestionsType>>(() => {
       if(search) {
-      return queryProps[nextSelection].suggestionOptions.filter(c =>
-        c.value.toLowerCase().includes(search.toLowerCase())
-        ).slice(0, 10)
-    }else {
-      return queryProps[nextSelection].suggestionOptions;
-    }
+        return queryProps[nextSelection].suggestionOptions.filter(c =>
+            c.value.toLowerCase().includes(search.toLowerCase())
+            ).slice(0, 10)
+        }else {
+        return queryProps[nextSelection].suggestionOptions;
+        }
     }, [nextSelection, search])
+
+    const validateQuery = useCallback((value: Descendant[]) => {
+        if(Node.isNode(value[0] )) {
+            let x = Array.from(Node.descendants(value[0]));
+            let queryTypeNodes = x.filter(n => {
+                if(SlateElement.isElement(n[0])) {
+                    return n
+                }
+            }).map((n: any) :queryNodeType => {
+                return {type: n[0].type, text: n[0].character, value: n[0].value}
+            })
+            if(queryTypeNodes.length !== 0) {
+                let {type: lastQueryType, text: lastQueryText} = queryTypeNodes[queryTypeNodes.length-1];
+                
+                if(lastQueryType !== "bracket") {
+                    let newSelectionIndex = queryProps.findIndex(query => query.type === lastQueryType)
+                    // Show next dropdown suggestion when user clears something using backspace
+                    setNextSelection((newSelectionIndex + 1) % queryProps.length)
+                }
+
+                // Handle brackets count
+                if(lastQueryText === "(") {
+                    // remove open bracket from the queryProps's attribute type of data and add close bracket into the queryProp's combination_options type of data
+                    // and do not update nextSelection index
+        
+                    if(queryProps[3].suggestionOptions[0].text !== ")") {
+                        queryProps[3].suggestionOptions.unshift(...CLOSE_BRACKET);
+                    }
+                    setOpenBracketCount(prev => prev+1)
+                } else if (lastQueryText === ")") {
+                    // If there's already an additional open bracket in the textfield then do not remove close bracket from the queryProps's combination_options type of data
+                    // else remove the close bracket from the queryProps's combination_options type of data
+                    // and do not update nextSelection index
+                    if(openBracketCount <= 1) {
+                        queryProps[3].suggestionOptions.shift();
+                    }
+                    setOpenBracketCount(prev => prev-1)
+                }
+            } else {
+                // text field is empty reset all
+                setNextSelection(0)
+                setOpenBracketCount(0)
+            }
+        }
+    }, [openBracketCount])
 
 	const insertQueryData = useCallback((suggestion: suggestionsType) => {
 		let type = queryProps[nextSelection].type
-		if(suggestion.text === "(") {
-			type = 'bracket'
-			// remove open bracket from the queryProps's attribute type of data and add close bracket into the queryProp's combination_options type of data
-			// and do not update nextSelection index
-			// queryProps[0].suggestionOptions.shift();
-
-			if(queryProps[3].suggestionOptions[0].text !== ")") {
-				queryProps[3].suggestionOptions.unshift(...CLOSE_BRACKET);
-			}
-			setOpenBracketCount(prev => prev+1)
-		} else if (suggestion.text === ")") {
-			// If there's already an additional open bracket in the textfield then do not remove close bracket from the queryProps's combination_options type of data
-			// else remove the close bracket from the queryProps's combination_options type of data
-			// and do not update nextSelection index
-
-			type = 'bracket';
-			if(openBracketCount <= 1) {
-				queryProps[3].suggestionOptions.shift();
-			}
-			setOpenBracketCount(prev => prev-1)
-		} else {
-			setNextSelection(prev => (prev + 1) % (queryProps.length))
-		}
+		if(suggestion.text === "(" || suggestion.text === ")") {
+            type = 'bracket'
+        }
 		const mention: CustomElement= {
 			type: type,
 			character: suggestion.text,
+            value: suggestion.value,
 			children: [{ text: '' }],
 		}
-		// How to handle free text value? 
+
 		Transforms.insertNodes(editor, mention)
 		Transforms.move(editor)
-	}, [nextSelection, editor, openBracketCount])
+	}, [nextSelection, editor])
 
     const onKeyDown = useCallback(
       (event: React.KeyboardEvent) => {
@@ -132,16 +153,17 @@ function Consumer() {
                         console.log("Enter key ")
                     //Get previous typed text to remove it when user selects something from the suggestion dropdown				
                     const selectedNode = editor.selection && Editor.node(editor, editor.selection.focus);
-                    let inputText;
-                    if(selectedNode && Node.string(selectedNode[0])) {
-                        inputText = Node.string(selectedNode[0]);
+                    let inputText = selectedNode && Node.string(selectedNode[0])
+                    if(inputText) {
                         Transforms.select(editor, target);
                     }
-            
+
                     if(inputText && queryProps[nextSelection].type === "value" && !queryProps[nextSelection].enableSuggestions) {
                         insertQueryData({text: inputText, value: inputText})
+                    } else {
+                        insertQueryData(suggestions[index])
                     }
-                    insertQueryData(suggestions[index])
+
                     let { selection } = editor
             
                     if (selection && Range.isCollapsed(selection)) {
@@ -165,6 +187,7 @@ function Consumer() {
                     break
                 case 'Backspace':
                     //   const selectedNode2 = editor.selection && Editor.node(editor, editor.selection.focus);
+                    // Should we update the nextSelection here??
                     break;
                 default:
                     //   console.log("default case", event.key)
@@ -175,10 +198,9 @@ function Consumer() {
                     event.preventDefault()
                     //Get previous typed text to remove it when user selects something from the suggestion dropdown				
                     const selectedNode = editor.selection && Editor.node(editor, editor.selection.focus);
-                    let inputText;
-                    if(selectedNode && Node.string(selectedNode[0])) {
-                        inputText = Node.string(selectedNode[0]);
-                        Transforms.select(editor, target);
+                    let inputText = selectedNode && Node.string(selectedNode[0]);
+                    if(inputText && selectedNode) {
+                        Transforms.select(editor, selectedNode[1]);
                     }
 
                     if(inputText && queryProps[nextSelection].type === "value" && !queryProps[nextSelection].enableSuggestions) {
@@ -228,7 +250,6 @@ function Consumer() {
 			const afterText = Editor.string(editor, afterRange)
 			const afterMatch = afterText.match(/^(\s|$)/)
 
-
 			if (afterMatch) {
 				setTarget(beforeRange)
 				setSearch(beforeText && beforeText.trim())
@@ -236,8 +257,6 @@ function Consumer() {
 				return
 			}
 		}
-
-		// setTarget(null)
 	}, [editor])
 
     const onChange = useCallback((value: Descendant[])  => {
@@ -275,13 +294,9 @@ function Consumer() {
           	(op) => 'set_selection' !== op.type
         )
         if (isAstChange) {
-            console.log("value: ", value)
 			validateQuery(value)
-          // Save the value to Local Storage.
-        //   const content = JSON.stringify(value)
-        //   localStorage.setItem('content', content)
         }
-    }, [editor, setTarget])
+    }, [editor, setTarget, validateQuery])
     return <MentionExample 
         initialValue={initialValue}
         editor={editor}

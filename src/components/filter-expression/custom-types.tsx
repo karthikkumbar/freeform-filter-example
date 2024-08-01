@@ -5,31 +5,50 @@ import { HistoryEditor } from 'slate-history'
 export type BracketElement = {
     type: "bracket"
     character: string
+    value: string
     children: CustomText[]
 }
 
 export type AttributeElement = {
     type: 'attribute'
     character: string
+    value: string
     children: CustomText[]
 }
 
 export type OperatorElement = {
     type: 'operator'
     character: string
+    value: string
     children: CustomText[]
 }
 
 export type ValueElement = {
     type: 'value'
     character: string
+    value: string
     children: CustomText[]
 }
 
 export type CombinationsElement = {
     type: 'combination_operator'
     character: string
+    value: string
     children: CustomText[]
+}
+
+export type CustomElement2 =
+  | BracketElement
+  | AttributeElement
+  | OperatorElement
+  | CombinationsElement
+  | ValueElement
+
+export type EmptyElement = {
+  type: 'empty'
+  character?: string
+  value?: string
+  children: CustomElement2[] | CustomText[]
 }
 
 export type ParagraphElement = {
@@ -43,9 +62,10 @@ export type CustomElement =
   | BracketElement
   | AttributeElement
   | OperatorElement
-  | ParagraphElement
+  // | ParagraphElement
   | CombinationsElement
   | ValueElement
+  | EmptyElement
 
 export type CustomText = {
   bold?: boolean
