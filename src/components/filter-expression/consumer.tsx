@@ -8,11 +8,11 @@ import {
 import { ATTRIBUTES, CLOSE_BRACKET, OPEN_BRACKET, OPERATORS, SuggestionTypes, valueOptions  } from './utility/operators'
 import { COMBINATION_OPTIONS } from './utility/operators'
 
-import MentionExample from "."
 import { withFilterExpressions } from './utility/withFilterExpressions'
 import SuggestDropDown from './components/SuggestDropDown'
 import { suggestionsType, queryPropsType, queryNodeType } from './types'
 import { CustomElement } from './custom-types'
+import SlateTextField from '.'
 
 
 const queryProps: Array<queryPropsType> = [
@@ -60,6 +60,7 @@ function Consumer() {
         () => withFilterExpressions(withReact(withHistory(createEditor()))),
         []
     )
+    const [isInputValid, setIsInputValid] = useState<boolean>(false)
 
     const suggestions = useMemo<Array<suggestionsType>>(() => {
       if(search) {
@@ -79,14 +80,18 @@ function Consumer() {
                     return n
                 }
             }).map((n: any) :queryNodeType => {
-                return {type: n[0].type, text: n[0].character, value: n[0].value}
+                return {type: n[0].type, text: n[0].character, value: n[0].value, fields: n[0].fields}
             })
+
             if(queryTypeNodes.length !== 0) {
-                let {type: lastQueryType, text: lastQueryText} = queryTypeNodes[queryTypeNodes.length-1];
+                // Get last query node
+                let {type: lastQueryType, text: lastQueryText } = queryTypeNodes[queryTypeNodes.length-1];
                 
+
+                // Update next dropdown suggestion based on the last selected type
+                // No need to update for bracket type
                 if(lastQueryType !== "bracket") {
                     let newSelectionIndex = queryProps.findIndex(query => query.type === lastQueryType)
-                    // Show next dropdown suggestion when user clears something using backspace
                     setNextSelection((newSelectionIndex + 1) % queryProps.length)
                 }
 
@@ -108,6 +113,32 @@ function Consumer() {
                     }
                     setOpenBracketCount(prev => prev-1)
                 }
+
+                // validate the input
+                console.log(queryTypeNodes)
+                // if bracketcount is not zero then its invalid expression
+                if(openBracketCount !== 0) {
+                    console.log("invalid bracket count: ", openBracketCount)
+                    setIsInputValid(false)
+                }
+                /**
+                 * For any combination of expression, for every AND/OR operator we will have 2 set of attribute, operator and value
+                 * Similarly if I have n combination_operator, we will have n+1 set of attribute, operator and value
+                 */
+
+                let groupSetCount = queryTypeNodes.filter(node => (node.type === "attribute" || node.type === "operator" || node.type === "value")).length;
+                let combinationOperatorCount = queryTypeNodes.filter(node => node.type === "combination_operator").length;
+                console.log("groupSetCount: ", groupSetCount, "Group % 3", groupSetCount%3)
+                console.log("combinationOperatorCount: ", combinationOperatorCount)
+
+                if((groupSetCount % 3 === 0) && (combinationOperatorCount + 1 === groupSetCount / 3)) {
+                    console.log("valid expression")
+                    setIsInputValid(true)
+                } else {
+                    console.log("Invalid expression")
+                    setIsInputValid(false)
+                }
+                // validateExpression(queryTypeNodes)
             } else {
                 // text field is empty reset all
                 setNextSelection(0)
@@ -125,6 +156,7 @@ function Consumer() {
 			type: type,
 			character: suggestion.text,
             value: suggestion.value,
+            fields: suggestion.fields || [],
 			children: [{ text: '' }],
 		}
 
@@ -150,7 +182,6 @@ function Consumer() {
                 case 'Tab':
                 case 'Enter':
                     event.preventDefault()
-                        console.log("Enter key ")
                     //Get previous typed text to remove it when user selects something from the suggestion dropdown				
                     const selectedNode = editor.selection && Editor.node(editor, editor.selection.focus);
                     let inputText = selectedNode && Node.string(selectedNode[0])
@@ -297,8 +328,9 @@ function Consumer() {
 			validateQuery(value)
         }
     }, [editor, setTarget, validateQuery])
-    return <MentionExample 
+    return <SlateTextField 
         initialValue={initialValue}
+        isValid={isInputValid}
         editor={editor}
         onKeyDown={onKeyDown}
         onChange={onChange}

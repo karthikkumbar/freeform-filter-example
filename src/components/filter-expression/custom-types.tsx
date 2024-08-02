@@ -1,6 +1,7 @@
 import { BaseEditor, BaseRange, Range, Element } from 'slate'
 import { ReactEditor, RenderLeafProps } from 'slate-react'
 import { HistoryEditor } from 'slate-history'
+import { suggestionsType } from './types'
 
 export type BracketElement = {
     type: "bracket"
@@ -19,6 +20,7 @@ export type AttributeElement = {
 export type OperatorElement = {
     type: 'operator'
     character: string
+    fields?: Array<suggestionsType>
     value: string
     children: CustomText[]
 }

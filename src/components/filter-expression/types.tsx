@@ -1,6 +1,7 @@
 export type suggestionsType = {
     value: string,
-    text: string
+    text: string,
+    fields?: Array<suggestionsType>
 }
 
 type QueryType = "attribute" | "operator" | "value" | "combination_operator" | "bracket" | "empty";
@@ -16,5 +17,6 @@ export type queryPropsType = {
 export type queryNodeType = {
     type: QueryType,
     value: string | undefined,
-    text: string | undefined
+    text: string | undefined,
+    fields: Array<suggestionsType>
 }

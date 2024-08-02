@@ -9,6 +9,7 @@ import { CustomEditor, CustomRenderLeafProps } from './custom-types'
 import Element from './components/Element'
 import Leaf from './components/Leaf'
 type SlateTextFieldType = {
+    isValid: boolean,
     initialValue: Descendant[],
     editor: CustomEditor,
     onKeyDown: (event: React.KeyboardEvent) => void,
@@ -18,10 +19,15 @@ type SlateTextFieldType = {
 }
 
 const SlateTextField = (props: SlateTextFieldType) => {
-	const { initialValue, editor, onKeyDown, onChange, SuggestDropDown, onClick} = props;
+	const { initialValue, editor, onKeyDown, onChange, SuggestDropDown, onClick, isValid } = props;
   const renderElement = useCallback((props:RenderElementProps) => <Element {...props} />, [])
   const renderLeaf = useCallback((props: CustomRenderLeafProps) => <Leaf {...props} />, [])
-
+  const styles ={ 
+    editable: {
+      border: `solid ${isValid ? "black" : "red"}`,
+      outline: `${isValid ? "blue" : "red"}`
+    } 
+  }
   return (
     <Slate
       editor={editor}
@@ -29,6 +35,7 @@ const SlateTextField = (props: SlateTextFieldType) => {
       onChange={onChange}
     >
       <Editable
+        style={styles.editable}
         renderElement={renderElement}
         renderLeaf={renderLeaf}
         onKeyDown={onKeyDown}
