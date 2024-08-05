@@ -13,11 +13,11 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
     - Note: All the data is hardcoded.
 - For Value field, user can type text and press Enter or Space key. For this in the code the `enableSuggestions` attribute should be set to `false`
 - Color coding of attribute, operator, values to make it easy to read.
+- Validation for simple filters
 
 ![alt text](image.png)
 
 # What needs to be completed
-- Validating the user input
 - Allowing OR/AND combination between values
     - Example: `(dstIP = host1 or host2)`
 - Handling the value when certain operators expects two values
