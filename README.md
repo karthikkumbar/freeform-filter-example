@@ -19,6 +19,9 @@ This was required to allow user to enter expressions like `(dstIP = host1 or hos
 - For Value field, user can type text and press Enter or Space key. For this in the code the `enableSuggestions` attribute should be set to `false`
 - Color coding of attribute, operator, values to make it easy to read.
 - User can use backspace to delete in a sequence.
+- Add `(` for any expression of format `<attribute> <operator> <value>` automatically if user misses to add one
+- Restricts user from using Right and Left arrow keys to move between the 
+- Restricts user from using mouse to move the cursor anywhere in the text field
 
 ![alt text](image.png)
 
@@ -28,7 +31,6 @@ This was required to allow user to enter expressions like `(dstIP = host1 or hos
     - Example: `dstPort between 80 to 120` 
 - Handle when user copy pastes some text
 - OnFocus open the suggestion dropdown
-- Add `(` for any expression of format `<attribute> <operator> <value>`
 
 ## Run it locally
 

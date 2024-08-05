@@ -11,5 +11,13 @@ export type queryNodeType = {
     type: QueryType,
     value: string | undefined,
     text: string | undefined,
-    fields: Array<suggestionsType>
+    fields: Array<suggestionsType>,
+    combo: string
+}
+
+export type DropdownContentType = {
+    type: QueryType,
+    options: Array<suggestionsType>,
+    enableSuggestions?: boolean
+    combo: string
 }

@@ -1,113 +1,17 @@
 import React, { useMemo, useCallback, useState } from 'react'
-import { Element as SlateElement, Editor, Node, Transforms, Range, createEditor, Descendant, before } from 'slate'
+import { Element as SlateElement, Editor, Node, Transforms, Range, createEditor, Descendant } from 'slate'
 import { withHistory } from 'slate-history'
 import {
   withReact
 } from 'slate-react'
-
-import { ATTRIBUTES, CLOSE_BRACKET, OPEN_BRACKET, OPERATORS, SuggestionTypes, valueOptions  } from './utility/operators'
-import { COMBINATION_OPTIONS } from './utility/operators'
-
-// import { withFilterExpressions } from './utility/withFilterExpressions'
 import SuggestDropDown from './components/SuggestDropDown'
-import { suggestionsType, queryNodeType, QueryType } from './types'
-import { CustomElement } from './custom-types'
+import { suggestionsType } from './types'
+import { CustomElement, CustomText } from './custom-types'
 import SlateTextField from '.'
-
-// type QueryType = "attribute" | "operator" | "value" | "combination_operator" | "bracket" | "empty";
-type DropdownContentType = {
-    type: QueryType,
-    options: Array<suggestionsType>,
-    enableSuggestions?: boolean
-    combo: string
-}
-// combo 1
-const OPEN_BRACKET_AND_ATTRIBUTES = {
-    combo: "combo1",
-    type: SuggestionTypes.attribute,
-    options: [...OPEN_BRACKET , ...ATTRIBUTES]
-}
-// combo 2
-const ONLY_OPERATORS = {
-    combo: "combo2",
-    type: SuggestionTypes.operator,
-    options: [...OPERATORS]
-}
-
-// combo 3
-const ONLY_VALUES = {
-    combo: "combo3",
-    type: SuggestionTypes.value,
-    enableSuggestions: false,
-    options: [...valueOptions]
-}
-
-// combo 4
-const CLOSE_BRACKET_AND_OR_COMBINATION = {
-    combo: "combo4",
-    type: SuggestionTypes.combinations,
-    options: [...CLOSE_BRACKET, COMBINATION_OPTIONS[0]]
-}
-// combo 5
-const OR_AND_COMBINATIONS = {
-    combo: "combo5",
-    type: SuggestionTypes.combinations,
-    options: [...COMBINATION_OPTIONS]
-}
-
-const getPreviousDropDownContent = (node: Node): DropdownContentType => {
-    if(SlateElement.isElement(node)) {
-        const {combo, type, character } = node;
-        if (combo === "combo1" && type === "bracket" && character === "(") {
-            return OPEN_BRACKET_AND_ATTRIBUTES
-        } else if(combo === "combo1" && type === 'attribute') {
-            return OPEN_BRACKET_AND_ATTRIBUTES
-        } else if( combo === "combo2" && type === "operator") {
-            return ONLY_OPERATORS
-        } else if( combo ==="combo3" && type === "value") {
-            return ONLY_VALUES
-        } else if( combo === "combo4" && type === "bracket") {
-            return CLOSE_BRACKET_AND_OR_COMBINATION
-        } else if( combo === "combo4" && type === "combination_operator") {
-            return CLOSE_BRACKET_AND_OR_COMBINATION
-        } else if( combo === "combo5") {
-            return OR_AND_COMBINATIONS
-        } else {
-            return OPEN_BRACKET_AND_ATTRIBUTES
-        }
-    } else {
-        // added to avoid typescript error
-        return OPEN_BRACKET_AND_ATTRIBUTES
-    }
-}
-
-const getNextDropDownContent = (node: Node):DropdownContentType => {
-    console.log(node)
-    if(SlateElement.isElement(node)) {
-        const {combo, type, character } = node;
-        if (combo === "combo1" && type === "bracket" && character === "(") {
-            return OPEN_BRACKET_AND_ATTRIBUTES
-        } else if(combo === "combo1" && type === 'attribute') {
-            return ONLY_OPERATORS
-        } else if( combo === "combo2" && type === "operator") {
-            return ONLY_VALUES
-        } else if( combo ==="combo3" && type === "value") {
-            return CLOSE_BRACKET_AND_OR_COMBINATION
-        } else if( combo === "combo4" && type === "bracket") {
-            return OR_AND_COMBINATIONS
-        } else if( combo === "combo4" && type === "combination_operator") {
-            return ONLY_VALUES
-        } else if( combo === "combo5") {
-            return OPEN_BRACKET_AND_ATTRIBUTES
-        } else {
-            return OPEN_BRACKET_AND_ATTRIBUTES
-        }
-    } else {
-        // added to avoid typescript error
-        return OPEN_BRACKET_AND_ATTRIBUTES
-    }
-}
-
+import { getQueryTypeNodesFromEditor, getQueryTypeNodesFromNode, getSlateTypeNodesFromEditor } from './utility'
+import { OPEN_BRACKET_AND_ATTRIBUTES } from './utility/operators'
+import { DropdownContentType } from './types'
+import { getPreviousDropDownContent, getNextDropDownContent } from './utility'
 const initialValue: Descendant[] = [
     {    
       type: 'empty',
@@ -154,25 +58,24 @@ function Consumer() {
         editor.deleteBackward = (...args) => {
         	const { selection } = editor
         	if (selection && Range.isCollapsed(selection)) {
-                
-        	  const [match] = Editor.nodes(editor, {
-                    match: n =>{
-                        if(SlateElement.isElement(n)) {
-                            return !!n.children.filter(node => SlateElement.isElement(node) && node.type).length
+                const [nodeEntry] = Editor.nodes(editor);
+                if(Node.isNode(nodeEntry[0])) {
+                    const x = Array.from(Node.descendants(nodeEntry[0]))
+                    if(!SlateElement.isElement(x[x.length-1][0])){
+                        let lastElement = x[x.length-1][0] as CustomText
+                        console.log(lastElement.text)
+                        /**
+                         * When user type something and clears that will be at the last node in below format
+                         * {text: ""}
+                         * will wait for user to clear all the text then update the dropDownContent accordingly
+                         */
+                        if(lastElement.text.length === 0) {
+                            let queryNodes = getQueryTypeNodesFromEditor(editor)
+                            let lastNode = queryNodes[queryNodes.length-1]
+                            setDropDownContent(getPreviousDropDownContent(lastNode))
                         }
-                        return false;
                     }
-        		})
-        
-        	  if (match) {
-        		if(SlateElement.isElement(match[0])) {
-                    console.log(match[0].children.filter(node => SlateElement.isElement(node) && node.type))
-                    let queryNodes = match[0].children.filter(node => SlateElement.isElement(node) && node.type)
-                    let lastNode = queryNodes[queryNodes.length-1]
-                    console.log(getPreviousDropDownContent(lastNode))
-                    setDropDownContent(getPreviousDropDownContent(lastNode))
                 }
-        	  }
         	}
         
         	deleteBackward(...args)
@@ -222,19 +125,10 @@ function Consumer() {
 
     const validateQuery = useCallback((value: Descendant[]) => {
         if(Node.isNode(value[0] )) {
-            let x = Array.from(Node.descendants(value[0]));
-            let queryTypeNodes = x.filter(n => {
-                if(SlateElement.isElement(n[0])) {
-                    return n
-                }
-            }).map((n: any) :queryNodeType => {
-                return {type: n[0].type, text: n[0].character, value: n[0].value, fields: n[0].fields}
-            })
-
+            let queryTypeNodes = getQueryTypeNodesFromNode(value[0])
             if(queryTypeNodes.length !== 0) {
                 // Get last query node
                 let {type: lastQueryType, text: lastQueryText } = queryTypeNodes[queryTypeNodes.length-1];
-
                 // validate the input
                 // if bracketcount is not zero then its invalid expression
                 if(openBracketCount !== 0) {
@@ -248,14 +142,10 @@ function Consumer() {
 
                 let groupSetCount = queryTypeNodes.filter(node => (node.type === "attribute" || node.type === "operator" || node.type === "value")).length;
                 let combinationOperatorCount = queryTypeNodes.filter(node => node.type === "combination_operator").length;
-                console.log("groupSetCount: ", groupSetCount, "Group % 3", groupSetCount%3)
-                console.log("combinationOperatorCount: ", combinationOperatorCount)
 
                 if((groupSetCount % 3 === 0) && (combinationOperatorCount + 1 === groupSetCount / 3)) {
-                    console.log("valid expression")
                     setIsInputValid(true)
                 } else {
-                    console.log("Invalid expression")
                     setIsInputValid(false)
                 }
                 // validateExpression(queryTypeNodes)
@@ -271,6 +161,29 @@ function Consumer() {
 		let type = dropdownContent.type
 		if(suggestion.text === "(" || suggestion.text === ")") {
             type = 'bracket'
+        }
+
+        /**
+         * Check if new node to be inserted is of type attribute and previous node is of type not bracket and text is not equal "(""
+         * then insert open bracket node
+         */
+
+        if(type === "attribute" ) {
+            const queryNodes = getQueryTypeNodesFromEditor(editor);
+            if(queryNodes.length > 0) {
+                let lastNode = queryNodes[queryNodes.length-1]
+                if(lastNode.type !== "bracket" && lastNode.value !== "(") {
+                    const newNode: CustomElement = {
+                        type: "bracket",
+                        character: "(",
+                        value: "(",
+                        children:[{text: ''}],
+                        combo: ""
+                    }
+                    // This method does not invoke editor.insertNode
+                    Transforms.insertNodes(editor, newNode)
+                }
+            }
         }
 		const mention: CustomElement= {
 			type: type,
@@ -291,6 +204,13 @@ function Consumer() {
         if (target && suggestions.length > 0) {
             // eslint-disable-next-line default-case
             switch (event.key) {
+                case 'ArrowLeft':
+                case 'ArrowRight':
+                    // Restricting user from using Arrowleft and ArrowRight keys
+                    event.preventDefault()
+                    event.stopPropagation()
+                    Transforms.move(editor, { unit: 'line', edge: 'focus' })
+                    break;
                 case 'ArrowDown':
                     event.preventDefault()
                     const prevIndex = index >= suggestions.length - 1 ? 0 : index + 1
@@ -346,6 +266,11 @@ function Consumer() {
                     //   console.log("default case", event.key)
             }
         }else {
+            if(event.key === "ArrowLeft" || event.key === "ArrowRight") {
+                event.preventDefault()
+                event.stopPropagation()
+                Transforms.move(editor, { unit: 'line', edge: 'focus' })
+            }
             if(event.key === 'Enter' || event.key === ' ') {
                 if(target){
                     event.preventDefault()
@@ -385,30 +310,42 @@ function Consumer() {
 
 		if (selection && Range.isCollapsed(selection)) {
 			const [start] = Range.edges(selection)
-			
-			// undefined when there's no text before i.e when text box is empty
-			const wordBefore = Editor.before(editor, start, { unit: 'word' })
-			let beforeText;
-			let beforeRange;
-			if(wordBefore) {
-				const before = wordBefore && Editor.before(editor, wordBefore)
-				beforeRange = before && Editor.range(editor, before, start)
-				beforeText = beforeRange && Editor.string(editor, beforeRange)
-			} else {
-				beforeRange = selection
-			}
+			console.log(Range.edges(selection))
+            const queryNodes = getQueryTypeNodesFromEditor(editor)
+            console.log("queryNodes: ", queryNodes)
+            const slateNodes = getSlateTypeNodesFromEditor(editor)
+            console.log(slateNodes[slateNodes.length-1])
+            if(queryNodes.length === 1 && queryNodes[0].type === "empty") {
+                // undefined when there's no text before i.e when text box is empty
+                const wordBefore = Editor.before(editor, start, { unit: 'word' })
+                let beforeText;
+                let beforeRange;
+                if(wordBefore) {
+                    const before = wordBefore && Editor.before(editor, wordBefore)
+                    beforeRange = before && Editor.range(editor, before, start)
+                    beforeText = beforeRange && Editor.string(editor, beforeRange)
+                } else {
+                    beforeRange = selection
+                }
 
-			const after = Editor.after(editor, start)
-			const afterRange = Editor.range(editor, start, after)
-			const afterText = Editor.string(editor, afterRange)
-			const afterMatch = afterText.match(/^(\s|$)/)
+                const after = Editor.after(editor, start)
+                const afterRange = Editor.range(editor, start, after)
+                const afterText = Editor.string(editor, afterRange)
+                const afterMatch = afterText.match(/^(\s|$)/)
 
-			if (afterMatch) {
-				setTarget(beforeRange)
-				setSearch(beforeText && beforeText.trim())
-				setIndex(0)
-				return
-			}
+                if (afterMatch) {
+                    setTarget(beforeRange)
+                    setSearch(beforeText && beforeText.trim())
+                    setIndex(0)
+                    return
+                }
+            } else {
+                // move the focus to the end when user clicks anywjere in the text field
+                const n = slateNodes[slateNodes.length-1][1][1]
+                event.preventDefault()
+                event.stopPropagation()
+                Transforms.move(editor, { distance: n })
+            }
 		}
 	}, [editor])
 
