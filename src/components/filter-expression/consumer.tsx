@@ -8,69 +8,217 @@ import {
 import { ATTRIBUTES, CLOSE_BRACKET, OPEN_BRACKET, OPERATORS, SuggestionTypes, valueOptions  } from './utility/operators'
 import { COMBINATION_OPTIONS } from './utility/operators'
 
-import { withFilterExpressions } from './utility/withFilterExpressions'
+// import { withFilterExpressions } from './utility/withFilterExpressions'
 import SuggestDropDown from './components/SuggestDropDown'
-import { suggestionsType, queryPropsType, queryNodeType } from './types'
+import { suggestionsType, queryNodeType, QueryType } from './types'
 import { CustomElement } from './custom-types'
 import SlateTextField from '.'
 
+// type QueryType = "attribute" | "operator" | "value" | "combination_operator" | "bracket" | "empty";
+type DropdownContentType = {
+    type: QueryType,
+    options: Array<suggestionsType>,
+    enableSuggestions?: boolean
+    combo: string
+}
+// combo 1
+const OPEN_BRACKET_AND_ATTRIBUTES = {
+    combo: "combo1",
+    type: SuggestionTypes.attribute,
+    options: [...OPEN_BRACKET , ...ATTRIBUTES]
+}
+// combo 2
+const ONLY_OPERATORS = {
+    combo: "combo2",
+    type: SuggestionTypes.operator,
+    options: [...OPERATORS]
+}
 
-const queryProps: Array<queryPropsType> = [
-	{
-		type: SuggestionTypes.attribute,
-		enableSuggestions: true,
-		suggestionOptions: [...OPEN_BRACKET , ...ATTRIBUTES],
-		nextProp: SuggestionTypes.operator,
-    },
-    {
-		type: SuggestionTypes.operator,
-		enableSuggestions: true,
-		suggestionOptions: OPERATORS,
-		nextProp: SuggestionTypes.value,
-    },
-    {
-		type: SuggestionTypes.value,
-		enableSuggestions: false,
-		suggestionOptions: valueOptions,
-		nextProp: SuggestionTypes.combinations
-    },
-	{
-		type: SuggestionTypes.combinations,
-		enableSuggestions: true,
-		suggestionOptions: COMBINATION_OPTIONS,
-	},
-  ];
+// combo 3
+const ONLY_VALUES = {
+    combo: "combo3",
+    type: SuggestionTypes.value,
+    enableSuggestions: false,
+    options: [...valueOptions]
+}
+
+// combo 4
+const CLOSE_BRACKET_AND_OR_COMBINATION = {
+    combo: "combo4",
+    type: SuggestionTypes.combinations,
+    options: [...CLOSE_BRACKET, COMBINATION_OPTIONS[0]]
+}
+// combo 5
+const OR_AND_COMBINATIONS = {
+    combo: "combo5",
+    type: SuggestionTypes.combinations,
+    options: [...COMBINATION_OPTIONS]
+}
+
+const getPreviousDropDownContent = (node: Node): DropdownContentType => {
+    if(SlateElement.isElement(node)) {
+        const {combo, type, character } = node;
+        if (combo === "combo1" && type === "bracket" && character === "(") {
+            return OPEN_BRACKET_AND_ATTRIBUTES
+        } else if(combo === "combo1" && type === 'attribute') {
+            return OPEN_BRACKET_AND_ATTRIBUTES
+        } else if( combo === "combo2" && type === "operator") {
+            return ONLY_OPERATORS
+        } else if( combo ==="combo3" && type === "value") {
+            return ONLY_VALUES
+        } else if( combo === "combo4" && type === "bracket") {
+            return CLOSE_BRACKET_AND_OR_COMBINATION
+        } else if( combo === "combo4" && type === "combination_operator") {
+            return CLOSE_BRACKET_AND_OR_COMBINATION
+        } else if( combo === "combo5") {
+            return OR_AND_COMBINATIONS
+        } else {
+            return OPEN_BRACKET_AND_ATTRIBUTES
+        }
+    } else {
+        // added to avoid typescript error
+        return OPEN_BRACKET_AND_ATTRIBUTES
+    }
+}
+
+const getNextDropDownContent = (node: Node):DropdownContentType => {
+    console.log(node)
+    if(SlateElement.isElement(node)) {
+        const {combo, type, character } = node;
+        if (combo === "combo1" && type === "bracket" && character === "(") {
+            return OPEN_BRACKET_AND_ATTRIBUTES
+        } else if(combo === "combo1" && type === 'attribute') {
+            return ONLY_OPERATORS
+        } else if( combo === "combo2" && type === "operator") {
+            return ONLY_VALUES
+        } else if( combo ==="combo3" && type === "value") {
+            return CLOSE_BRACKET_AND_OR_COMBINATION
+        } else if( combo === "combo4" && type === "bracket") {
+            return OR_AND_COMBINATIONS
+        } else if( combo === "combo4" && type === "combination_operator") {
+            return ONLY_VALUES
+        } else if( combo === "combo5") {
+            return OPEN_BRACKET_AND_ATTRIBUTES
+        } else {
+            return OPEN_BRACKET_AND_ATTRIBUTES
+        }
+    } else {
+        // added to avoid typescript error
+        return OPEN_BRACKET_AND_ATTRIBUTES
+    }
+}
 
 const initialValue: Descendant[] = [
     {    
       type: 'empty',
+      combo:'',
       children: [
-        { text: '' },
+        { text: '' }
       ],
     },
 ]
 
 function Consumer() {
 	const [openBracketCount, setOpenBracketCount] = useState<number>(0)
-    const [nextSelection, setNextSelection] = useState<number>(0)
     const [target, setTarget] = useState<Range | undefined>()
     const [index, setIndex] = useState<number>(0)
     const [search, setSearch] = useState<string | undefined>('')
+    const [isInputValid, setIsInputValid] = useState<boolean>(false)
+    const [dropdownContent, setDropDownContent] = useState<DropdownContentType>(OPEN_BRACKET_AND_ATTRIBUTES)
+    
+    const suggestions = useMemo<Array<suggestionsType>>(() => {
+      if(search) {
+        return dropdownContent.options.filter(c =>
+            c.value.toLowerCase().includes(search.toLowerCase())
+            ).slice(0, 10)
+        }else {
+        return dropdownContent.options;
+        }
+    }, [dropdownContent, search])
+
+    const withFilterExpressions = (editor: Editor) => {
+        const { isInline, isVoid, markableVoid, insertNode, insertText, insertFragment, deleteFragment, deleteBackward} = editor
+      
+        editor.isInline = element => {
+            return ["attribute" , "operator" , "value" , "combination_operator" , "bracket"].includes(element.type) || isInline(element);
+        }
+      
+        editor.isVoid = element => {
+          return ["attribute" , "operator" , "value" , "combination_operator" , "bracket"].includes(element.type) || isVoid(element)
+        }
+      
+        editor.markableVoid = element => {
+          return ["attribute" , "operator" , "value" , "combination_operator" , "bracket"].includes(element.type) || markableVoid(element)
+        }
+    
+        editor.deleteBackward = (...args) => {
+        	const { selection } = editor
+        	if (selection && Range.isCollapsed(selection)) {
+                
+        	  const [match] = Editor.nodes(editor, {
+                    match: n =>{
+                        if(SlateElement.isElement(n)) {
+                            return !!n.children.filter(node => SlateElement.isElement(node) && node.type).length
+                        }
+                        return false;
+                    }
+        		})
+        
+        	  if (match) {
+        		if(SlateElement.isElement(match[0])) {
+                    console.log(match[0].children.filter(node => SlateElement.isElement(node) && node.type))
+                    let queryNodes = match[0].children.filter(node => SlateElement.isElement(node) && node.type)
+                    let lastNode = queryNodes[queryNodes.length-1]
+                    console.log(getPreviousDropDownContent(lastNode))
+                    setDropDownContent(getPreviousDropDownContent(lastNode))
+                }
+        	  }
+        	}
+        
+        	deleteBackward(...args)
+
+            let { selection: selection2 } = editor
+            
+            if (selection2 && Range.isCollapsed(selection2)) {
+                const [start] = Range.edges(selection2)
+    
+                // undefined when there's no text before i.e when text box is empty
+                const wordBefore = Editor.before(editor, start, { unit: 'word' })
+                let beforeRange;
+                if(wordBefore) {
+                    const before = wordBefore && Editor.before(editor, wordBefore)
+                    beforeRange = before && Editor.range(editor, before, start)
+                } else {
+                    beforeRange = selection2
+                }
+                setTarget(beforeRange)
+            }
+        }
+    
+        editor.deleteFragment = (...args) => {
+            console.log("delet Fragment")
+            deleteFragment(...args)
+        }
+          editor.insertNode = (node) => {
+            console.log("node inserted", node)
+            setDropDownContent(getNextDropDownContent(node))
+            insertNode(node)
+          }
+      
+          editor.insertText = (...args) => {
+            console.log("insertText", args)
+            insertText(...args)
+          }
+          editor.insertFragment = (...args) => {
+            console.log("fragment inserted", args)
+            insertFragment(...args)
+          }
+        return editor
+    }
     const editor = useMemo(
         () => withFilterExpressions(withReact(withHistory(createEditor()))),
         []
     )
-    const [isInputValid, setIsInputValid] = useState<boolean>(false)
-
-    const suggestions = useMemo<Array<suggestionsType>>(() => {
-      if(search) {
-        return queryProps[nextSelection].suggestionOptions.filter(c =>
-            c.value.toLowerCase().includes(search.toLowerCase())
-            ).slice(0, 10)
-        }else {
-        return queryProps[nextSelection].suggestionOptions;
-        }
-    }, [nextSelection, search])
 
     const validateQuery = useCallback((value: Descendant[]) => {
         if(Node.isNode(value[0] )) {
@@ -86,36 +234,8 @@ function Consumer() {
             if(queryTypeNodes.length !== 0) {
                 // Get last query node
                 let {type: lastQueryType, text: lastQueryText } = queryTypeNodes[queryTypeNodes.length-1];
-                
-
-                // Update next dropdown suggestion based on the last selected type
-                // No need to update for bracket type
-                if(lastQueryType !== "bracket") {
-                    let newSelectionIndex = queryProps.findIndex(query => query.type === lastQueryType)
-                    setNextSelection((newSelectionIndex + 1) % queryProps.length)
-                }
-
-                // Handle brackets count
-                if(lastQueryText === "(") {
-                    // remove open bracket from the queryProps's attribute type of data and add close bracket into the queryProp's combination_options type of data
-                    // and do not update nextSelection index
-        
-                    if(queryProps[3].suggestionOptions[0].text !== ")") {
-                        queryProps[3].suggestionOptions.unshift(...CLOSE_BRACKET);
-                    }
-                    setOpenBracketCount(prev => prev+1)
-                } else if (lastQueryText === ")") {
-                    // If there's already an additional open bracket in the textfield then do not remove close bracket from the queryProps's combination_options type of data
-                    // else remove the close bracket from the queryProps's combination_options type of data
-                    // and do not update nextSelection index
-                    if(openBracketCount <= 1) {
-                        queryProps[3].suggestionOptions.shift();
-                    }
-                    setOpenBracketCount(prev => prev-1)
-                }
 
                 // validate the input
-                console.log(queryTypeNodes)
                 // if bracketcount is not zero then its invalid expression
                 if(openBracketCount !== 0) {
                     console.log("invalid bracket count: ", openBracketCount)
@@ -141,14 +261,14 @@ function Consumer() {
                 // validateExpression(queryTypeNodes)
             } else {
                 // text field is empty reset all
-                setNextSelection(0)
+                setDropDownContent(OPEN_BRACKET_AND_ATTRIBUTES)
                 setOpenBracketCount(0)
             }
         }
     }, [openBracketCount])
 
 	const insertQueryData = useCallback((suggestion: suggestionsType) => {
-		let type = queryProps[nextSelection].type
+		let type = dropdownContent.type
 		if(suggestion.text === "(" || suggestion.text === ")") {
             type = 'bracket'
         }
@@ -158,11 +278,13 @@ function Consumer() {
             value: suggestion.value,
             fields: suggestion.fields || [],
 			children: [{ text: '' }],
+            combo: dropdownContent.combo
 		}
 
-		Transforms.insertNodes(editor, mention)
+        editor.insertNode(mention)
+		// Transforms.insertNodes(editor, mention)
 		Transforms.move(editor)
-	}, [nextSelection, editor])
+	}, [ editor, dropdownContent])
 
     const onKeyDown = useCallback(
       (event: React.KeyboardEvent) => {
@@ -189,7 +311,7 @@ function Consumer() {
                         Transforms.select(editor, target);
                     }
 
-                    if(inputText && queryProps[nextSelection].type === "value" && !queryProps[nextSelection].enableSuggestions) {
+                    if(inputText && dropdownContent.type === "value" && !dropdownContent.enableSuggestions) {
                         insertQueryData({text: inputText, value: inputText})
                     } else {
                         insertQueryData(suggestions[index])
@@ -234,7 +356,7 @@ function Consumer() {
                         Transforms.select(editor, selectedNode[1]);
                     }
 
-                    if(inputText && queryProps[nextSelection].type === "value" && !queryProps[nextSelection].enableSuggestions) {
+                    if(inputText && dropdownContent.type === "value" && !dropdownContent.enableSuggestions) {
                         insertQueryData({text: inputText, value: inputText})
                         let { selection } = editor
 
@@ -255,7 +377,7 @@ function Consumer() {
             }
         }
       },
-      [suggestions, editor, index, target, insertQueryData, nextSelection]
+      [suggestions, editor, index, target, insertQueryData, dropdownContent]
     )
 
 	const onClick = useCallback((event: React.MouseEvent) => {
@@ -293,7 +415,6 @@ function Consumer() {
     const onChange = useCallback((value: Descendant[])  => {
       const { selection } = editor
         if (selection && Range.isCollapsed(selection)) {
-
             const [start] = Range.edges(selection)
 
 
@@ -325,8 +446,10 @@ function Consumer() {
           	(op) => 'set_selection' !== op.type
         )
         if (isAstChange) {
+            console.log("value: ", value)
 			validateQuery(value)
         }
+    // }, [editor, setTarget, validateQuery])
     }, [editor, setTarget, validateQuery])
     return <SlateTextField 
         initialValue={initialValue}

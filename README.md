@@ -2,10 +2,15 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+In this, the approach to handle the drodown content when user selects from dropdown/delets from the text field is different from what we have in `main` branch.
+This was required to allow user to enter expressions like `(dstIP = host1 or host2)`
+
 # What works as of now
 - Supports the filter expression in below format
     - `<Bracket> <Attribute> <Operator> <Value> <Bracket><AND/OR> <Bracket> <Attribute> <Operator> <Value>` 
     - For Example: `(AppProfile = Netflix or Facebook ) and (srcIP = 172.24.147.115 or dstIP = 172.24.147.115)`
+    - Allowing OR/AND combination between values
+        - Example: `(dstIP = host1 or host2)`
 - On clicking inside the textfield a suggestion dropdow opens
     - User can type to filter the suggestions
     - User can user Up/Down arrow keys to navigate between the suggestions options
@@ -13,18 +18,17 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
     - Note: All the data is hardcoded.
 - For Value field, user can type text and press Enter or Space key. For this in the code the `enableSuggestions` attribute should be set to `false`
 - Color coding of attribute, operator, values to make it easy to read.
+- User can use backspace to delete in a sequence.
 
 ![alt text](image.png)
 
 # What needs to be completed
 - Validating the user input
-- Allowing OR/AND combination between values
-    - Example: `(dstIP = host1 or host2)`
 - Handling the value when certain operators expects two values
     - Example: `dstPort between 80 to 120` 
 - Handle when user copy pastes some text
 - OnFocus open the suggestion dropdown
-- Does not work as expected when user selects a value from dropdown and then clears it.
+- Add `(` for any expression of format `<attribute> <operator> <value>`
 
 ## Run it locally
 

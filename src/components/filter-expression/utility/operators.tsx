@@ -22,11 +22,11 @@ export const SuggestionTypes = {
   
   export const COMBINATION_OPTIONS = [
     {
-      text: "Or",
+      text: "OR",
       value: "OR",
     },
     {
-      text: "And",
+      text: "AND",
       value: "AND",
     },
   ];

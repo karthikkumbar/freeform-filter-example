@@ -17,10 +17,14 @@ export default function SuggestDropDown (props: Props) {
     useEffect(() => {
         if (target && suggestions.length > 0 && ref.current) {
           const el = ref.current
-          const domRange = ReactEditor.toDOMRange(editor, target)
-          const rect = domRange.getBoundingClientRect()
-          el.style.top = `${rect.top + window.pageYOffset + 24}px`
-          el.style.left = `${rect.left + window.pageXOffset}px`
+          try {
+            const domRange = ReactEditor.toDOMRange(editor, target)
+            const rect = domRange.getBoundingClientRect()
+            el.style.top = `${rect.top + window.pageYOffset + 24}px`
+            el.style.left = `${rect.left + window.pageXOffset}px`
+          } catch (error) {
+            console.log(error)
+          }
         }
       }, [suggestions.length, editor, index, target])
 

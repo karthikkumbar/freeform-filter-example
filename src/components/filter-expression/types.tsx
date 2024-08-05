@@ -4,15 +4,8 @@ export type suggestionsType = {
     fields?: Array<suggestionsType>
 }
 
-type QueryType = "attribute" | "operator" | "value" | "combination_operator" | "bracket" | "empty";
+export type QueryType = "attribute" | "operator" | "value" | "combination_operator" | "bracket" | "empty";
 // type QueryType = "paragraph" | "attribute" | "operator" | "value" | "combination_operator" | "bracket";
-
-export type queryPropsType = {
-    type: QueryType,
-    enableSuggestions: boolean,
-    suggestionOptions: Array<suggestionsType>,
-    nextProp?: QueryType
-}
 
 export type queryNodeType = {
     type: QueryType,
