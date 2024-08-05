@@ -11,11 +11,11 @@ function Element(props: RenderElementProps) {
 		case 'bracket': 
 			return <Mention {...props} color={'black'}/>
 		case 'attribute': 
-			return <Mention {...props} color={'red'}/>
+			return <Mention {...props} color={'#6929c4'}/>
 		case 'operator': 
-		return <Mention {...props} color={'green'}/>
+		return <Mention {...props} color={'#1192e8'}/>
 		case 'value': 
-			return <Mention {...props} color={'blue'}/>
+			return <Mention {...props} color={'#005d5d'}/>
 		case 'combination_operator':
 			return <Mention {...props} color={'black'} />
 		default:
