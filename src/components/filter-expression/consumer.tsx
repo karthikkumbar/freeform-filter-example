@@ -29,7 +29,7 @@ function Consumer() {
     const [search, setSearch] = useState<string | undefined>('')
     const [isInputValid, setIsInputValid] = useState<boolean>(false)
     const [dropdownContent, setDropDownContent] = useState<DropdownContentType>(OPEN_BRACKET_AND_ATTRIBUTES)
-    
+    const [operatorFields, setOperatorFields] = useState<Array<any>>([])
     const suggestions = useMemo<Array<suggestionsType>>(() => {
       if(search) {
         return dropdownContent.options.filter(c =>
@@ -63,15 +63,26 @@ function Consumer() {
                     const x = Array.from(Node.descendants(nodeEntry[0]))
                     if(!SlateElement.isElement(x[x.length-1][0])){
                         let lastElement = x[x.length-1][0] as CustomText
-                        console.log(lastElement.text)
                         /**
                          * When user type something and clears that will be at the last node in below format
                          * {text: ""}
                          * will wait for user to clear all the text then update the dropDownContent accordingly
                          */
                         if(lastElement.text.length === 0) {
-                            let queryNodes = getQueryTypeNodesFromEditor(editor)
-                            let lastNode = queryNodes[queryNodes.length-1]
+                            const queryNodes = getQueryTypeNodesFromEditor(editor)
+                            const lastNode = queryNodes[queryNodes.length-1]
+                            const lastButOneNode = queryNodes[queryNodes.length-2]
+
+                            /**
+                             * When we have expression like ( Application Port Is in between (From ,To) OR (From ,To))
+                             * And when user deletes ) we should update the operatorFields with proper fields to show to the user
+                             */
+                            if(lastNode.combo === "combo4" && lastNode.type === "bracket" && lastNode.text === ")"){
+                                if(lastButOneNode.fields.length > 0) {
+                                    setOperatorFields(lastButOneNode.fields)
+                                }
+                            }
+
                             setDropDownContent(getPreviousDropDownContent(lastNode))
                         }
                     }
@@ -79,22 +90,16 @@ function Consumer() {
         	}
         
         	deleteBackward(...args)
-
+            /**
+             * Update target
+             */
             let { selection: selection2 } = editor
             
             if (selection2 && Range.isCollapsed(selection2)) {
                 const [start] = Range.edges(selection2)
-    
-                // undefined when there's no text before i.e when text box is empty
-                const wordBefore = Editor.before(editor, start, { unit: 'word' })
-                let beforeRange;
-                if(wordBefore) {
-                    const before = wordBefore && Editor.before(editor, wordBefore)
-                    beforeRange = before && Editor.range(editor, before, start)
-                } else {
-                    beforeRange = selection2
-                }
-                setTarget(beforeRange)
+                const after = Editor.after(editor, start)
+                const range = Editor.range(editor, start, after)
+                setTarget(range)
             }
         }
     
@@ -103,9 +108,38 @@ function Consumer() {
             deleteFragment(...args)
         }
           editor.insertNode = (node) => {
-            console.log("node inserted", node)
             setDropDownContent(getNextDropDownContent(node))
-            insertNode(node)
+
+            /**
+             * Merge multiplve value node
+             */
+            const slateNodes = getSlateTypeNodesFromEditor(editor)
+            const queryTypeNodes = getQueryTypeNodesFromEditor(editor)
+
+            if((SlateElement.isElement(node) && node.type === "value" ) && (SlateElement.isElement(slateNodes[slateNodes.length-1][0]) && slateNodes[slateNodes.length-1][0].type === "value")) {
+                const {text, value} = queryTypeNodes[queryTypeNodes.length-1]
+                const operatorNode = queryTypeNodes[queryTypeNodes.length-2]
+
+                Transforms.removeNodes(editor, {at: slateNodes[slateNodes.length-1][1]})    
+                if(SlateElement.isElement(node) && value && typeof node.value === "string") {
+                    // convert "(400 ," to 400
+                    const lower = text?.split("(")[1]?.replace(",", "").trim()
+                    // convert "500)" to 500
+                    const upper = node.character.split(")")[0]
+                    node.character = `${text} ${node.character}`
+                    node.value = [
+                        {
+                            [value]: lower,
+                            [node.value]: upper
+                        }
+                    ]
+                    node.fields = operatorNode.fields
+                }
+                insertNode(node)
+            }else {
+                insertNode(node)
+            }
+            
           }
       
           editor.insertText = (...args) => {
@@ -159,12 +193,15 @@ function Consumer() {
 
 	const insertQueryData = useCallback((suggestion: suggestionsType) => {
 		let type = dropdownContent.type
-		if(suggestion.text === "(" || suggestion.text === ")") {
+        let character = suggestion.text
+        let fields = suggestion.fields
+		if(character === "(" || character === ")") {
             type = 'bracket'
         }
 
         /**
-         * Check if new node to be inserted is of type attribute and previous node is of type not bracket and text is not equal "(""
+         * Check if new node to be inserted is of type attribute and previous 
+         * node is of type not bracket and text is not equal "(""
          * then insert open bracket node
          */
 
@@ -185,11 +222,33 @@ function Consumer() {
                 }
             }
         }
+        /**
+         * When the operator expects multiple values
+         */
+        if(type === "operator" && fields && fields?.length > 0) {
+            setOperatorFields(fields)
+        }
+
+        if(operatorFields.length) {
+            const index = operatorFields.findIndex(field => field.value === suggestion.value)
+            if( index === 0) {
+                character = `(${suggestion.text} ,`
+            } else if(index === 1) {
+                character = `${suggestion.text})`
+            }
+            if(type === "bracket" && character === ")") {
+                setOperatorFields([])
+            } else if( dropdownContent.combo === "combo4" && type === "combination_operator" && character === "OR") {
+                // add fields to OR to show multiple values after this.
+                fields = operatorFields
+            }
+        }
+
 		const mention: CustomElement= {
 			type: type,
-			character: suggestion.text,
+			character: character,
             value: suggestion.value,
-            fields: suggestion.fields || [],
+            fields: fields || [],
 			children: [{ text: '' }],
             combo: dropdownContent.combo
 		}
@@ -197,7 +256,7 @@ function Consumer() {
         editor.insertNode(mention)
 		// Transforms.insertNodes(editor, mention)
 		Transforms.move(editor)
-	}, [ editor, dropdownContent])
+	}, [ editor, dropdownContent, operatorFields])
 
     const onKeyDown = useCallback(
       (event: React.KeyboardEvent) => {
@@ -207,9 +266,9 @@ function Consumer() {
                 case 'ArrowLeft':
                 case 'ArrowRight':
                     // Restricting user from using Arrowleft and ArrowRight keys
-                    event.preventDefault()
-                    event.stopPropagation()
-                    Transforms.move(editor, { unit: 'line', edge: 'focus' })
+                    // event.preventDefault()
+                    // event.stopPropagation()
+                    // Transforms.move(editor, { unit: 'line', edge: 'focus' })
                     break;
                 case 'ArrowDown':
                     event.preventDefault()
@@ -241,12 +300,6 @@ function Consumer() {
             
                     if (selection && Range.isCollapsed(selection)) {
                         const [start] = Range.edges(selection)
-                        // const wordBefore = Editor.before(editor, start, { unit: 'line' })
-                        // const before = wordBefore && Editor.before(editor, wordBefore)
-                        // const beforeRange = before && Editor.range(editor, before, start)
-                        // const beforeText = beforeRange && Editor.string(editor, beforeRange)
-            
-                        // setTarget(beforeRange)
                         const after = Editor.after(editor, start)
                         const afterRange = Editor.range(editor, start, after)
                         setTarget(afterRange)
@@ -267,9 +320,9 @@ function Consumer() {
             }
         }else {
             if(event.key === "ArrowLeft" || event.key === "ArrowRight") {
-                event.preventDefault()
-                event.stopPropagation()
-                Transforms.move(editor, { unit: 'line', edge: 'focus' })
+                // event.preventDefault()
+                // event.stopPropagation()
+                // Transforms.move(editor, { unit: 'line', edge: 'focus' })
             }
             if(event.key === 'Enter' || event.key === ' ') {
                 if(target){
@@ -282,17 +335,11 @@ function Consumer() {
                     }
 
                     if(inputText && dropdownContent.type === "value" && !dropdownContent.enableSuggestions) {
-                        insertQueryData({text: inputText, value: inputText})
+                        insertQueryData({text: inputText, value: dropdownContent.options[0].value, fields: dropdownContent.options[0].fields})
                         let { selection } = editor
 
                         if (selection && Range.isCollapsed(selection)) {
                             const [start] = Range.edges(selection)
-                            // const wordBefore = Editor.before(editor, start, { unit: 'line' })
-                            // const before = wordBefore && Editor.before(editor, wordBefore)
-                            // const beforeRange = before && Editor.range(editor, before, start)
-                            // const beforeText = beforeRange && Editor.string(editor, beforeRange)
-
-                            // setTarget(beforeRange)
                             const after = Editor.after(editor, start)
                             const afterRange = Editor.range(editor, start, after)
                             setTarget(afterRange)
@@ -310,11 +357,9 @@ function Consumer() {
 
 		if (selection && Range.isCollapsed(selection)) {
 			const [start] = Range.edges(selection)
-			console.log(Range.edges(selection))
             const queryNodes = getQueryTypeNodesFromEditor(editor)
-            console.log("queryNodes: ", queryNodes)
             const slateNodes = getSlateTypeNodesFromEditor(editor)
-            console.log(slateNodes[slateNodes.length-1])
+
             if(queryNodes.length === 1 && queryNodes[0].type === "empty") {
                 // undefined when there's no text before i.e when text box is empty
                 const wordBefore = Editor.before(editor, start, { unit: 'word' })

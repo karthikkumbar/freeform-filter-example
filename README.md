@@ -20,17 +20,20 @@ This was required to allow user to enter expressions like `(dstIP = host1 or hos
 - Color coding of attribute, operator, values to make it easy to read.
 - User can use backspace to delete in a sequence.
 - Add `(` for any expression of format `<attribute> <operator> <value>` automatically if user misses to add one
-- Restricts user from using Right and Left arrow keys to move between the 
-- Restricts user from using mouse to move the cursor anywhere in the text field
+- Handling the value when certain operators expects two values
+    - Example: `dstPort between (80, 120)`
 
 ![alt text](image.png)
 
 # What needs to be completed
-- Validating the user input
-- Handling the value when certain operators expects two values
-    - Example: `dstPort between 80 to 120` 
+- Validating the user input 
 - Handle when user copy pastes some text
 - OnFocus open the suggestion dropdown
+- On pressing backspace, the suggestion dropdown opens at the begining of the last entry. It should be opened at the end of the last entry
+
+# Should we,
+- Restricts user from using Right and Left arrow keys to move between the 
+- Restricts user from using mouse to move the cursor anywhere in the text field
 
 ## Run it locally
 

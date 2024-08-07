@@ -4,8 +4,7 @@ import { OPEN_BRACKET_AND_ATTRIBUTES, ONLY_OPERATORS, ONLY_VALUES, CLOSE_BRACKET
 import { DropdownContentType } from "../types";
 
 export const getPreviousDropDownContent = (node: queryNodeType): DropdownContentType => {
-    console.log(node)
-    const {combo, type, text } = node;
+    const {combo, type, text, fields } = node;
     if (combo === "combo1" && type === "bracket" && text === "(") {
         return OPEN_BRACKET_AND_ATTRIBUTES
     } else if(combo === "combo1" && type === 'attribute') {
@@ -13,6 +12,25 @@ export const getPreviousDropDownContent = (node: queryNodeType): DropdownContent
     } else if( combo === "combo2" && type === "operator") {
         return ONLY_OPERATORS
     } else if( combo ==="combo3" && type === "value") {
+        /**
+         * The operator expects multiple values
+         */
+        if(fields && fields.length > 0) {
+            const newArr = [...fields];
+            newArr.shift()
+            const first = fields[0]
+            if(first) {
+                return {
+                    ...ONLY_VALUES,
+                    options: [
+                        {
+                            ...first,
+                            fields: newArr
+                        }
+                    ]
+                }
+            }
+        }
         return ONLY_VALUES
     } else if( combo === "combo4" && type === "bracket") {
         return CLOSE_BRACKET_AND_OR_COMBINATION
@@ -27,18 +45,75 @@ export const getPreviousDropDownContent = (node: queryNodeType): DropdownContent
 
 export const getNextDropDownContent = (node: Node):DropdownContentType => {
     if(SlateElement.isElement(node)) {
-        const {combo, type, character } = node;
+        const {combo, type, character, fields } = node;
         if (combo === "combo1" && type === "bracket" && character === "(") {
             return OPEN_BRACKET_AND_ATTRIBUTES
         } else if(combo === "combo1" && type === 'attribute') {
             return ONLY_OPERATORS
         } else if( combo === "combo2" && type === "operator") {
+            /**
+             * The operator expects multiple values
+             */
+            if(fields && fields.length > 0) {
+                const newArr = [...fields];
+                newArr.shift()
+                const first = fields[0]
+                if(first) {
+                    return {
+                        ...ONLY_VALUES,
+                        options: [
+                            {
+                                ...first,
+                                fields: newArr
+                            }
+                        ]
+                    }
+                }
+            }
             return ONLY_VALUES
         } else if( combo ==="combo3" && type === "value") {
+            /**
+             * The value expects multiple values
+             */
+            if(fields && fields.length > 0) {
+                const newArr = [...fields];
+                newArr.shift()
+                const first = fields[0]
+                if(first) {
+                    return {
+                        ...ONLY_VALUES,
+                        options: [
+                            {
+                                ...first,
+                                fields: newArr
+                            }
+                        ]
+                    }
+                }
+            }
             return CLOSE_BRACKET_AND_OR_COMBINATION
         } else if( combo === "combo4" && type === "bracket") {
             return OR_AND_COMBINATIONS
         } else if( combo === "combo4" && type === "combination_operator") {
+            /**
+             * The value expects multiple values
+             */
+            if(fields && fields.length > 0) {
+                const newArr = [...fields];
+                newArr.shift()
+                const first = fields[0]
+                if(first) {
+                    return {
+                        ...ONLY_VALUES,
+                        options: [
+                            {
+                                ...first,
+                                fields: newArr
+                            }
+                        ]
+                    }
+                }
+            }
             return ONLY_VALUES
         } else if( combo === "combo5") {
             return OPEN_BRACKET_AND_ATTRIBUTES

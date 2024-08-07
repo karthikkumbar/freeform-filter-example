@@ -1,8 +1,8 @@
 // import React, { ReactNode } from 'react'
 import {
     RenderElementProps,
-    useSelected,
-    useFocused
+    // useSelected,
+    // useFocused
 } from 'slate-react'
 
 type Props = RenderElementProps & {
@@ -11,26 +11,18 @@ type Props = RenderElementProps & {
 
 // Mention component, this component renders when user selects a value from suggestion dropdown
 const Mention = ({ attributes, children, element, color }: Props) => {
-    const selected = useSelected()
-    const focused = useFocused()
+    // const selected = useSelected()
+    // const focused = useFocused()
     const style: any = {
 	  color: color,
-      padding: '3px 3px 2px',
-      margin: '0 5px',
+      padding: '3px 1px 0px',
+      margin: '0 2px',
       verticalAlign: 'baseline',
       display: 'inline-block',
-      borderRadius: '4px',
-      backgroundColor: '#eee',
       fontSize: '0.9em',
-      boxShadow: selected && focused ? '0 0 0 2px #B4D5FF' : 'none',
+      // boxShadow: selected && focused ? `0 0 0 2px ${color}` : 'none',
     }
-    // See if our empty text child has any styling marks applied and apply those
-    // if (element.children[0].bold) {
-    //   style.fontWeight = 'bold'
-    // }
-    // if (element.children[0].italic) {
-    //   style.fontStyle = 'italic'
-    // }
+
     return (
       <span
         {...attributes}
