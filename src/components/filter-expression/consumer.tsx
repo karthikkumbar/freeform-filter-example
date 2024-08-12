@@ -41,7 +41,7 @@ function Consumer() {
     }, [dropdownContent, search])
 
     const withFilterExpressions = (editor: Editor) => {
-        const { isInline, isVoid, markableVoid, insertNode, insertText, insertFragment, deleteFragment, deleteBackward} = editor
+        const { isInline, isVoid, markableVoid, insertNode, insertText, insertFragment, deleteFragment, deleteBackward, insertData} = editor
       
         editor.isInline = element => {
             return ["attribute" , "operator" , "value" , "combination_operator" , "bracket"].includes(element.type) || isInline(element);
@@ -107,7 +107,8 @@ function Consumer() {
             console.log("delet Fragment")
             deleteFragment(...args)
         }
-          editor.insertNode = (node) => {
+
+        editor.insertNode = (node) => {
             setDropDownContent(getNextDropDownContent(node))
 
             /**
@@ -139,17 +140,29 @@ function Consumer() {
             }else {
                 insertNode(node)
             }
-            
-          }
-      
-          editor.insertText = (...args) => {
+        
+        }
+        
+        editor.insertData = (data) => {
+            console.log("insertData", data)
+            const textPlainData = data.getData("text/plain")
+            console.log(typeof textPlainData, textPlainData)
+            const regex = /"[^"]+"|[^\s]+/g
+            if(typeof textPlainData === "string" && textPlainData) {
+                const matchArray = textPlainData.match(regex);
+                const newData = matchArray && matchArray.map(e => e.replace(/"(.+)"/, "$1"))
+                console.log(newData)
+            }
+            insertData(data)
+        }
+        editor.insertText = (...args) => {
             console.log("insertText", args)
             insertText(...args)
-          }
-          editor.insertFragment = (...args) => {
+        }
+        editor.insertFragment = (...args) => {
             console.log("fragment inserted", args)
             insertFragment(...args)
-          }
+        }
         return editor
     }
     const editor = useMemo(
@@ -264,11 +277,17 @@ function Consumer() {
             // eslint-disable-next-line default-case
             switch (event.key) {
                 case 'ArrowLeft':
+                    event.preventDefault()
+                    Transforms.move(editor, { unit: 'offset', reverse: true })
+                    break
                 case 'ArrowRight':
                     // Restricting user from using Arrowleft and ArrowRight keys
                     // event.preventDefault()
                     // event.stopPropagation()
                     // Transforms.move(editor, { unit: 'line', edge: 'focus' })
+
+                    event.preventDefault()
+                    Transforms.move(editor, { unit: 'offset' })
                     break;
                 case 'ArrowDown':
                     event.preventDefault()
@@ -304,8 +323,7 @@ function Consumer() {
                         const afterRange = Editor.range(editor, start, after)
                         setTarget(afterRange)
                     }
-                    //   setTarget(null)
-                    //   setNextSelection(prev => (prev + 1) % (queryProps.length))
+                    setIndex(0)
                     break
                 case 'Escape':
                     event.preventDefault()
@@ -319,15 +337,21 @@ function Consumer() {
                     //   console.log("default case", event.key)
             }
         }else {
-            if(event.key === "ArrowLeft" || event.key === "ArrowRight") {
+            if(event.key === "ArrowLeft") {
                 // event.preventDefault()
                 // event.stopPropagation()
                 // Transforms.move(editor, { unit: 'line', edge: 'focus' })
-            }
+                event.preventDefault()
+                Transforms.move(editor, { unit: 'offset', reverse: true })
+                return
+            } else if (event.key === "ArrowRight") {
+                event.preventDefault()
+                Transforms.move(editor, { unit: 'offset' })
+            } 
             if(event.key === 'Enter' || event.key === ' ') {
                 if(target){
                     event.preventDefault()
-                    //Get previous typed text to remove it when user selects something from the suggestion dropdown				
+                    // Select typed text to remove it, after user presses Enter or Space
                     const selectedNode = editor.selection && Editor.node(editor, editor.selection.focus);
                     let inputText = selectedNode && Node.string(selectedNode[0]);
                     if(inputText && selectedNode) {
@@ -358,7 +382,6 @@ function Consumer() {
 		if (selection && Range.isCollapsed(selection)) {
 			const [start] = Range.edges(selection)
             const queryNodes = getQueryTypeNodesFromEditor(editor)
-            const slateNodes = getSlateTypeNodesFromEditor(editor)
 
             if(queryNodes.length === 1 && queryNodes[0].type === "empty") {
                 // undefined when there's no text before i.e when text box is empty
@@ -385,6 +408,7 @@ function Consumer() {
                     return
                 }
             } else {
+                const slateNodes = getSlateTypeNodesFromEditor(editor)
                 // move the focus to the end when user clicks anywjere in the text field
                 const n = slateNodes[slateNodes.length-1][1][1]
                 event.preventDefault()
@@ -414,12 +438,16 @@ function Consumer() {
 			const afterMatch = afterText.match(/^(\s|$)/)
 
 
-            if (afterMatch) {
+            if (afterMatch && beforeText) {
                 setTarget(beforeRange)
-                setSearch(beforeText && beforeText.trim())
+                setSearch(beforeText.trim())
                 setIndex(0)
             }else {
-				setTarget(undefined);
+                // Moving the focus to the last node when user does not type anything on the text field
+                const slateNodes = getSlateTypeNodesFromEditor(editor)
+				const n = slateNodes[slateNodes.length-1][1][1]
+                Transforms.move(editor, { distance: n })
+                setSearch('')
 			}
         }
   

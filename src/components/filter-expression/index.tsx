@@ -13,8 +13,8 @@ type SlateTextFieldType = {
     initialValue: Descendant[],
     editor: CustomEditor,
     onKeyDown: (event: React.KeyboardEvent) => void,
-    onChange: (value: Descendant[]) => void
-    onClick: (event: React.MouseEvent) => void
+    onChange: (value: Descendant[]) => void,
+    onClick: (event: React.MouseEvent) => void,
     SuggestDropDown?: ReactElement
 }
 
@@ -35,6 +35,9 @@ const SlateTextField = (props: SlateTextFieldType) => {
       onChange={onChange}
     >
       <Editable
+        onPaste={(e) => {
+          console.log("onPaste: ", e)
+        }}
         style={styles.editable}
         renderElement={renderElement}
         renderLeaf={renderLeaf}

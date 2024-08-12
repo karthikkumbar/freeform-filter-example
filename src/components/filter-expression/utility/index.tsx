@@ -147,7 +147,7 @@ export function getQueryTypeNodesFromNode (nodeEntry: Node) {
 
 export function getSlateTypeNodesFromEditor (editor: Editor) {
     const [nodeEntry] = Editor.nodes(editor);
-    if(Node.isNode(nodeEntry[0])) {
+    if(nodeEntry && Node.isNode(nodeEntry[0])) {
         const x = Array.from(Node.descendants(nodeEntry[0]))
         return x.filter(n => {
             if(SlateElement.isElement(n[0]) && n[0].type) {

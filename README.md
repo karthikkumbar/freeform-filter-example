@@ -22,6 +22,8 @@ This was required to allow user to enter expressions like `(dstIP = host1 or hos
 - Add `(` for any expression of format `<attribute> <operator> <value>` automatically if user misses to add one
 - Handling the value when certain operators expects two values
     - Example: `dstPort between (80, 120)`
+- Restricts user from using Right and Left arrow keys to move between the expression in the text field. We shall support this later and show appropriate drodown when user moves around using left/right arrow keys.
+- Restricts user from using mouse to move the cursor anywhere in the text field. We shall support this later and show appropriate drodown when user moves around using mouse click.
 
 ![alt text](image.png)
 
@@ -31,9 +33,6 @@ This was required to allow user to enter expressions like `(dstIP = host1 or hos
 - OnFocus open the suggestion dropdown
 - On pressing backspace, the suggestion dropdown opens at the begining of the last entry. It should be opened at the end of the last entry
 
-# Should we,
-- Restricts user from using Right and Left arrow keys to move between the 
-- Restricts user from using mouse to move the cursor anywhere in the text field
 
 ## Run it locally
 
