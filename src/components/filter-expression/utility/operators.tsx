@@ -22,11 +22,11 @@ export const SuggestionTypes = {
   
   export const COMBINATION_OPTIONS = [
     {
-      text: "Or",
+      text: "OR",
       value: "OR",
     },
     {
-      text: "And",
+      text: "AND",
       value: "AND",
     },
   ];
@@ -180,3 +180,38 @@ export const SuggestionTypes = {
       //   selector: NamedSubnetSelector,
       },
     ];
+
+
+// combo 1
+export const OPEN_BRACKET_AND_ATTRIBUTES = {
+  combo: "combo1",
+  type: SuggestionTypes.attribute,
+  options: [...OPEN_BRACKET , ...ATTRIBUTES]
+}
+// combo 2
+export const ONLY_OPERATORS = {
+  combo: "combo2",
+  type: SuggestionTypes.operator,
+  options: [...OPERATORS]
+}
+
+// combo 3
+export const ONLY_VALUES = {
+  combo: "combo3",
+  type: SuggestionTypes.value,
+  enableSuggestions: false,
+  options: [...valueOptions]
+}
+
+// combo 4
+export const CLOSE_BRACKET_AND_OR_COMBINATION = {
+  combo: "combo4",
+  type: SuggestionTypes.combinations,
+  options: [...CLOSE_BRACKET, COMBINATION_OPTIONS[0]]
+}
+// combo 5
+export const OR_AND_COMBINATIONS = {
+  combo: "combo5",
+  type: SuggestionTypes.combinations,
+  options: [...COMBINATION_OPTIONS]
+}

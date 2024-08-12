@@ -6,6 +6,8 @@ import { suggestionsType } from './types'
 export type BracketElement = {
     type: "bracket"
     character: string
+    combo: string
+    fields?: Array<suggestionsType>
     value: string
     children: CustomText[]
 }
@@ -13,6 +15,8 @@ export type BracketElement = {
 export type AttributeElement = {
     type: 'attribute'
     character: string
+    combo: string
+    fields?: Array<suggestionsType>
     value: string
     children: CustomText[]
 }
@@ -20,6 +24,7 @@ export type AttributeElement = {
 export type OperatorElement = {
     type: 'operator'
     character: string
+    combo: string
     fields?: Array<suggestionsType>
     value: string
     children: CustomText[]
@@ -28,13 +33,17 @@ export type OperatorElement = {
 export type ValueElement = {
     type: 'value'
     character: string
-    value: string
+    combo: string
+    fields?: Array<suggestionsType>
+    value: string | Array<any>
     children: CustomText[]
 }
 
 export type CombinationsElement = {
     type: 'combination_operator'
     character: string
+    combo: string
+    fields?: Array<suggestionsType>
     value: string
     children: CustomText[]
 }
@@ -48,9 +57,11 @@ export type CustomElement2 =
 
 export type EmptyElement = {
   type: 'empty'
+  combo: string
+  fields?: Array<suggestionsType>
   character?: string
   value?: string
-  children: CustomElement2[] | CustomText[]
+  children: Array<CustomElement2 | CustomText>
 }
 
 export type ParagraphElement = {
@@ -75,10 +86,12 @@ export type CustomText = {
   code?: boolean
   underline?:boolean
   text: string
+  type?: string
 }
 
 export type EmptyText = {
   text: string
+  type?: string
 }
 
 export type CustomEditor = BaseEditor &

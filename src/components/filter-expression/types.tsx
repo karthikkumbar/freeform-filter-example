@@ -4,19 +4,20 @@ export type suggestionsType = {
     fields?: Array<suggestionsType>
 }
 
-type QueryType = "attribute" | "operator" | "value" | "combination_operator" | "bracket" | "empty";
+export type QueryType = "attribute" | "operator" | "value" | "combination_operator" | "bracket" | "empty";
 // type QueryType = "paragraph" | "attribute" | "operator" | "value" | "combination_operator" | "bracket";
-
-export type queryPropsType = {
-    type: QueryType,
-    enableSuggestions: boolean,
-    suggestionOptions: Array<suggestionsType>,
-    nextProp?: QueryType
-}
 
 export type queryNodeType = {
     type: QueryType,
     value: string | undefined,
     text: string | undefined,
-    fields: Array<suggestionsType>
+    fields: Array<suggestionsType>,
+    combo: string
+}
+
+export type DropdownContentType = {
+    type: QueryType,
+    options: Array<suggestionsType>,
+    enableSuggestions?: boolean
+    combo: string
 }
