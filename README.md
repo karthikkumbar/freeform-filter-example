@@ -2,9 +2,6 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-In this, the approach to handle the drodown content when user selects from dropdown/delets from the text field is different from what we have in `main` branch.
-This was required to allow user to enter expressions like `(dstIP = host1 or host2)`
-
 # What works as of now
 - Supports the filter expression in below format
     - `<Bracket> <Attribute> <Operator> <Value> <Bracket><AND/OR> <Bracket> <Attribute> <Operator> <Value>` 
